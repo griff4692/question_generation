@@ -1,10 +1,9 @@
-import dataclasses
 import json
 import logging
 import os
 import sys
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Optional
 
 import numpy as np
 import torch
@@ -22,6 +21,7 @@ from transformers import (
 )
 
 from data_collator import T2TDataCollator
+from prepare_data import QGDataset
 
 MODEL_TYPE_TO_TOKENIZER = {
     "t5": T5Tokenizer,
@@ -66,7 +66,7 @@ class DataTrainingArguments:
     )
     task: Optional[str] = field(
         default=None,
-        metadata={"help": "Which task 'qa', 'qg', 'e2e_qg', 'ans_ext', 'multi'. 'multi' means 'qa', 'qg', 'ans_ext' tasks"}, 
+        metadata={"help": "Which task 'qa', 'qg', 'e2e_qg', 'ans_ext', 'multi'. 'multi' means 'qa', 'qg', 'ans_ext' tasks"},
     )
     qg_format: Optional[str] = field(
         default='prepend_qg_format',
@@ -78,7 +78,7 @@ class DataTrainingArguments:
     )
     max_target_length: Optional[int] = field(
         default=32,
-        metadata={"help": "Max input length for the target text"},
+        metadata={'help': 'Max input length for the target text'},
     )
 
 
@@ -123,19 +123,14 @@ def main(args_file=None):
         bool(training_args.local_rank != -1),
         training_args.fp16,
     )
-    logger.info("Training/evaluation parameters %s", training_args)
+    logger.info('Training/evaluation parameters %s', training_args)
 
     # Set seed
     set_seed(training_args.seed)
 
     # Set project name
-    os.environ["WANDB_PROJECT"] = "question-generation"
+    os.environ['WANDB_PROJECT'] = 'question-generation'
 
-    # Load pretrained model and tokenizer
-    #
-    # Distributed training:
-    # The .from_pretrained methods guarantee that only one local process can concurrently
-    # download model & vocab.
     tokenizer_cls = MODEL_TYPE_TO_TOKENIZER[model_args.model_type]
     tokenizer = tokenizer_cls.from_pretrained(
         model_args.tokenizer_name_or_path if model_args.tokenizer_name_or_path else model_args.model_name_or_path,
@@ -160,7 +155,7 @@ def main(args_file=None):
     data_collator = T2TDataCollator(
         tokenizer=tokenizer,
         model_type=model_args.model_type,
-        mode="training",
+        mode='training',
         using_tpu=training_args.tpu_num_cores is not None
     )
 
@@ -211,11 +206,13 @@ def _mp_fn(index):
     # For xla_spawn (TPUs)
     main()
 
+
 def run_qg(args_dict):
     with open("args.json", 'w') as f:
         json.dump(args_dict, f)
     
     main(args_file="args.json")
+
 
 if __name__ == "__main__":
     main()

@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 import torch
 
@@ -11,14 +11,14 @@ def trim_batch(
     if attention_mask is None:
         return input_ids[:, keep_column_mask]
     else:
-        return (input_ids[:, keep_column_mask], attention_mask[:, keep_column_mask])
+        return input_ids[:, keep_column_mask], attention_mask[:, keep_column_mask]
 
 
 # prepares lm_labels from target_ids, returns examples with keys as expected by the forward method
 # this is necessacry because the trainer directly passes this dict as arguments to the model
 # so make sure the keys match the parameter names of the forward method
 class T2TDataCollator():
-    def __init__(self, tokenizer, model_type="t5", mode='training', using_tpu=False):
+    def __init__(self, tokenizer, model_type='t5', mode='training', using_tpu=False):
         self.tokenizer = tokenizer
         self.model_type = model_type
         self.mode = mode
@@ -52,7 +52,7 @@ class T2TDataCollator():
           if self.mode == 'training':
             lm_labels[target_ids[:, 1:] == pad_token_id] = -100
 
-        params =  {
+        params = {
             "input_ids": input_ids, 
             "attention_mask": attention_mask,
             "labels": lm_labels, 
